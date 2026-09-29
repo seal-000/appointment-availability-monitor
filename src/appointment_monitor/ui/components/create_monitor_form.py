@@ -115,9 +115,9 @@ class CreateMonitorForm(QFrame):
 				"name": name,
 				"url": url.toString(),
 				"interval": int(self.interval_combo.currentData()),
-				"status": "Active",
+				"status": "Running",
 				"checked": "Just now",
-				"result": "Waiting for first check",
+				"result": "No availability at the moment",
 			}
 		)
 		self.name_input.clear()

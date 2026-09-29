@@ -3,13 +3,14 @@
 from collections.abc import Mapping, Sequence
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QHeaderView, QTableWidget, QTableWidgetItem
 
+from .last_check_text import LastCheckText
 from .status_tag import StatusTag
 
 
 MonitorRecord = Mapping[str, str | int]
+STATUS_COLUMN_WIDTH = 236
 
 
 class MonitorTable(QTableWidget):
@@ -33,8 +34,14 @@ class MonitorTable(QTableWidget):
 		header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 		header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
 		header.resizeSection(0, 44)
-		for column in (1, 3, 4, 5):
+		for column in (1, 3, 5):
 			header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+		header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+		header.resizeSection(4, STATUS_COLUMN_WIDTH)
+		for column in (1, 2, 3, 5, 6):
+			self.horizontalHeaderItem(column).setTextAlignment(
+				Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+			)
 
 	def set_monitors(self, monitors: Sequence[MonitorRecord]) -> None:
 		"""Replace the visible rows with the supplied monitor records."""
@@ -55,18 +62,25 @@ class MonitorTable(QTableWidget):
 				(2, monitor["url"]),
 				(3, f'{monitor["interval"]} s'),
 				(5, monitor["checked"]),
-				(6, monitor["result"]),
 			)
 			for column, value in values:
 				item = QTableWidgetItem(str(value))
 				item.setToolTip(str(value))
-				if column == 6 and str(value).startswith(("503", "404")):
-					item.setForeground(QColor("#A34B43"))
 				self.setItem(row_index, column, item)
 
 			status = str(monitor["status"])
-			variant = "success" if status == "Active" else "warning"
+			variant = {
+				"Running": "info",
+				"Appointment Found": "success",
+				"Stopped": "neutral",
+				"Error": "error",
+			}.get(status, "neutral")
 			self.setCellWidget(row_index, 4, StatusTag(status, variant))
+			self.setCellWidget(
+				row_index,
+				6,
+				LastCheckText(status, str(monitor["name"]), str(monitor["result"])),
+			)
 			self.setRowHeight(row_index, 42)
 
 	def checked_rows(self) -> list[int]:
