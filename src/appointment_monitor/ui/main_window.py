@@ -6,6 +6,9 @@ from PyQt6.QtWidgets import QHBoxLayout, QMainWindow, QStackedWidget, QWidget
 
 from .components import Sidebar
 from .views.dashboard_view import DashboardView
+from .views.about_view import AboutView
+from .views.settings_view import SettingsView
+from .views.logs_view import LogsView
 
 
 class MainWindow(QMainWindow):
@@ -29,7 +32,14 @@ class MainWindow(QMainWindow):
 
 		self.views = QStackedWidget()
 		self.dashboard = DashboardView()
-		self.views.addWidget(self.dashboard)
+		self.pages = {
+			"Dashboard": self.dashboard,
+			"Settings": SettingsView(),
+			"Logs": LogsView("Logs"),
+			"About": AboutView("About"),
+		}
+		for page in self.pages.values():
+			self.views.addWidget(page)
 		layout.addWidget(self.views, 1)
 		self.setCentralWidget(shell)
 
@@ -38,15 +48,21 @@ class MainWindow(QMainWindow):
 		arrow_path = (
 			stylesheet_path.parent / "imgs" / "dropdown-chevron.svg"
 		).resolve().as_posix()
+		check_path = (
+			stylesheet_path.parent / "imgs" / "check_icon.svg"
+		).resolve().as_posix()
 		stylesheet = stylesheet.replace(
 			'url("imgs/dropdown-chevron.svg")',
 			f'url("{arrow_path}")',
 		)
+		stylesheet = stylesheet.replace(
+			'url("imgs/check_icon.svg")',
+			f'url("{check_path}")',
+		)
 		self.setStyleSheet(stylesheet)
 
 	def _show_view(self, name: str) -> None:
-		"""Show the dashboard until the other navigation views are implemented."""
-		if name == "Dashboard":
-			self.views.setCurrentWidget(self.dashboard)
-		else:
-			self.sidebar.set_active_page("Dashboard")
+		"""Show the selected navigation view when it exists."""
+		page = self.pages.get(name)
+		if page is not None:
+			self.views.setCurrentWidget(page)

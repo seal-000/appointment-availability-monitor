@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
 	QWidget,
 )
 
-from ..components import CreateMonitorForm, MonitorTable, NotificationsInfo
+from ..components import CreateMonitorForm, LastCheckText, MonitorTable, NotificationsInfo
 
 
 MONITORS: list[dict[str, Any]] = [
@@ -22,41 +22,41 @@ MONITORS: list[dict[str, Any]] = [
 		"name": "Primary Clinic",
 		"url": "https://clinic.example.com/appointments",
 		"interval": 300,
-		"status": "Active",
+		"status": "Running",
 		"checked": "2 min ago",
-		"result": "200 OK",
+		"result": "No availability at the moment",
 	},
 	{
 		"name": "Dental Care",
 		"url": "https://dental.example.com/bookings",
 		"interval": 300,
-		"status": "Active",
+		"status": "Appointment Found",
 		"checked": "5 min ago",
-		"result": "200 OK",
+		"result": "Appointment has been found at Dental Care",
 	},
 	{
 		"name": "Lab Portal",
 		"url": "https://lab.example.com/slots",
 		"interval": 180,
-		"status": "Paused",
+		"status": "Error",
 		"checked": "1 hr ago",
-		"result": "503 Service Unavailable",
+		"result": "HTTP 503 Service Unavailable",
 	},
 	{
 		"name": "Urgent Care",
 		"url": "https://urgent.example.com/appointments",
 		"interval": 60,
-		"status": "Active",
+		"status": "Running",
 		"checked": "Just now",
-		"result": "200 OK",
+		"result": "No availability at the moment",
 	},
 	{
 		"name": "Specialist",
 		"url": "https://specialist.example.com/visits",
 		"interval": 3600,
-		"status": "Paused",
+		"status": "Stopped",
 		"checked": "2 hr ago",
-		"result": "404 Not Found",
+		"result": "Monitor has been stopped",
 	},
 ]
 
@@ -108,10 +108,10 @@ class DashboardView(QWidget):
 		action_row.setSpacing(8)
 		self._add_action_button(action_row, "Remove", self._remove_selected)
 		action_row.addStretch()
-		self._add_action_button(action_row, "Start", lambda: self._set_selected_status("Active"))
-		self._add_action_button(action_row, "Stop", lambda: self._set_selected_status("Paused"))
-		self._add_action_button(action_row, "Start All", lambda: self._set_all_status("Active"))
-		self._add_action_button(action_row, "Stop All", lambda: self._set_all_status("Paused"))
+		self._add_action_button(action_row, "Start", lambda: self._set_selected_status("Running"))
+		self._add_action_button(action_row, "Stop", lambda: self._set_selected_status("Stopped"))
+		self._add_action_button(action_row, "Start All", lambda: self._set_all_status("Running"))
+		self._add_action_button(action_row, "Stop All", lambda: self._set_all_status("Stopped"))
 		monitor_layout.addLayout(action_row)
 		content_layout.addWidget(monitor_panel)
 
@@ -147,8 +147,8 @@ class DashboardView(QWidget):
 	def _render_monitors(self) -> None:
 		"""Refresh table rows and the active-monitor summary from demo data."""
 		self.table.set_monitors(self.monitors)
-		active_count = sum(monitor["status"] == "Active" for monitor in self.monitors)
-		self.summary_label.setText(f"{active_count} ACTIVE  /  {len(self.monitors)} TOTAL")
+		running_count = sum(monitor["status"] == "Running" for monitor in self.monitors)
+		self.summary_label.setText(f"{running_count} RUNNING  /  {len(self.monitors)} TOTAL")
 
 	def _set_selected_status(self, status: str) -> None:
 		"""Set the status for checked monitors, or the focused row if none are checked."""
@@ -156,8 +156,10 @@ class DashboardView(QWidget):
 		if not rows and self.table.currentRow() >= 0:
 			rows = [self.table.currentRow()]
 		for row in rows:
-			self.monitors[row]["status"] = status
-			self.monitors[row]["checked"] = "Just now"
+			monitor = self.monitors[row]
+			monitor["status"] = status
+			monitor["checked"] = "Just now"
+			monitor["result"] = self._status_detail(status, monitor["name"])
 		self._render_monitors()
 
 	def _add_monitor(self, monitor: dict[str, Any]) -> None:
@@ -170,7 +172,12 @@ class DashboardView(QWidget):
 		for monitor in self.monitors:
 			monitor["status"] = status
 			monitor["checked"] = "Just now"
+			monitor["result"] = self._status_detail(status, monitor["name"])
 		self._render_monitors()
+
+	@staticmethod
+	def _status_detail(status: str, name: str) -> str:
+		return LastCheckText.message_for(status, name)
 
 	def _remove_selected(self) -> None:
 		"""Remove checked demo monitors from the table."""
