@@ -65,20 +65,25 @@ class NotificationChannel(QFrame):
 		channel_name = QLabel(name)
 		channel_name.setObjectName("notificationChannelName")
 		text_layout.addWidget(channel_name)
-		contact_label = QLabel(contact)
-		contact_label.setObjectName("notificationContact")
-		text_layout.addWidget(contact_label)
+		self.contact_label = QLabel(contact)
+		self.contact_label.setObjectName("notificationContact")
+		text_layout.addWidget(self.contact_label)
 		layout.addLayout(text_layout, 1)
 
+		self.status_icon = QLabel()
+		self.status_icon.setObjectName("notificationIndicator")
+		self.status_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.status_icon.setFixedSize(22, 22)
+		layout.addWidget(self.status_icon)
+		self._channel_name = name
+		self.set_state(contact, enabled)
+
+	def set_state(self, contact: str, enabled: bool) -> None:
+		"""Update the displayed contact and saved enabled preference."""
+		self.contact_label.setText(contact)
+		status = "enabled" if enabled else "disabled"
 		status_icon_name = "check_icon.svg" if enabled else "close_icon.svg"
 		status_icon_path = Path(__file__).parents[1] / "resources" / "imgs" / status_icon_name
-		status_icon = QLabel()
-		status_icon.setObjectName("notificationIndicator")
-		status_icon.setAccessibleName(
-			f"{name} {'enabled' if enabled else 'disabled'}"
-		)
-		status_icon.setToolTip("Enabled" if enabled else "Disabled")
-		status_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-		status_icon.setFixedSize(22, 22)
-		status_icon.setPixmap(QIcon(str(status_icon_path)).pixmap(QSize(18, 18)))
-		layout.addWidget(status_icon)
+		self.status_icon.setAccessibleName(f"{self._channel_name} {status}")
+		self.status_icon.setToolTip(status.capitalize())
+		self.status_icon.setPixmap(QIcon(str(status_icon_path)).pixmap(QSize(18, 18)))

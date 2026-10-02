@@ -21,7 +21,11 @@ class CreateMonitorForm(QFrame):
 
 	monitor_created = pyqtSignal(dict)
 
-	def __init__(self, parent=None) -> None:
+	def __init__(
+		self,
+		parent=None,
+		default_interval_seconds: int = 300,
+	) -> None:
 		"""Build the name, URL, interval, and start-monitoring controls."""
 		super().__init__(parent)
 		self.setObjectName("panel")
@@ -57,8 +61,17 @@ class CreateMonitorForm(QFrame):
 		interval_label.setObjectName("formLabel")
 		interval_column.addWidget(interval_label)
 		self.interval_combo = QComboBox()
-		for minutes in (5, 10, 15, 30):
-			self.interval_combo.addItem(f"{minutes} minutes", minutes * 60)
+		intervals = (5 * 60, 10 * 60, 15 * 60, 30 * 60)
+		for interval in intervals:
+			self.interval_combo.addItem(f"{interval // 60} minutes", interval)
+		if default_interval_seconds not in intervals:
+			self.interval_combo.addItem(
+				f"{default_interval_seconds} seconds",
+				default_interval_seconds,
+			)
+		self.interval_combo.setCurrentIndex(
+			self.interval_combo.findData(default_interval_seconds)
+		)
 		interval_column.addWidget(self.interval_combo)
 		bottom_row.addLayout(interval_column, 1)
 
@@ -80,6 +93,14 @@ class CreateMonitorForm(QFrame):
 		self.error_label.setObjectName("formError")
 		self.error_label.setWordWrap(True)
 		layout.addWidget(self.error_label)
+
+	def set_default_interval(self, interval_seconds: int) -> None:
+		"""Select or add the configured default interval."""
+		index = self.interval_combo.findData(interval_seconds)
+		if index < 0:
+			self.interval_combo.addItem(f"{interval_seconds} seconds", interval_seconds)
+			index = self.interval_combo.count() - 1
+		self.interval_combo.setCurrentIndex(index)
 
 	@staticmethod
 	def _add_text_field(layout: QVBoxLayout, label_text: str, placeholder: str) -> QLineEdit:
