@@ -1,0 +1,2 @@
+selenium>=4.11
+PyQt6>=6.6
